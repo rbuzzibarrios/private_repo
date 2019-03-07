@@ -1,0 +1,175 @@
+defaults: &defaults
+  working_directory: ~/laravel
+  docker:
+  - image: eliurkis/laravel:latest
+  - image: circleci/mysql:5.7
+    environment:
+    - MYSQL_USER=root
+    - MYSQL_PASSWORD=
+    - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    - MYSQL_DATABASE=taller
+  - image: circleci/redis:latest
+
+version: 2
+jobs:
+  build:
+    <<: *defaults
+    steps:
+    - checkout
+    - run: sudo docker-php-ext-install sockets
+    - run:
+        name: Disable Xdebug
+        command: sudo rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+    - run: sudo composer self-update
+    - restore_cache:
+        keys:
+        - vendors-{{ checksum "composer.lock" }}
+    - run: sudo docker-php-ext-install bcmath && sudo docker-php-ext-enable bcmath
+    - run:
+        name: Wait for DB
+        command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+    - run: composer install --prefer-dist --no-interaction
+    - save_cache:
+        key: vendors-{{ checksum "composer.lock" }}
+        paths:
+        - vendor
+    - run: npm config set registry http://registry.npmjs.org/
+    - restore_cache:
+        keys:
+        - node_modules-{{ checksum "package-lock.json" }}
+    - run: npm install
+    - save_cache:
+        key: node_modules-{{ checksum "package-lock.json" }}
+        paths:
+        - node_modules
+        - ~/.cache
+    - run: npm rebuild node-sass
+    - run: npm run dev
+    - run: sudo chmod -R 775 storage bootstrap/cache
+    - persist_to_workspace:
+        root: ~/laravel
+        paths:
+        - app
+        - bootstrap
+        - config
+        - cypress
+        - database
+        - public
+        - resources
+        - routes
+        - storage
+        - tests
+        - .env
+        - .php_cs.dist
+        - artisan
+        - composer.json
+        - composer.lock
+        - cypress.json
+        - package-lock.json
+        - package.json
+        - server.php
+  test:
+    <<: *defaults
+    steps:
+    - attach_workspace:
+        at: ~/laravel
+    - run:
+        name: Update host file
+        command: |
+          echo 127.0.0.1 taller.test | sudo tee -a /etc/hosts
+          cat /etc/hosts
+    - run: sudo docker-php-ext-install sockets
+    - run:
+        name: Disable Xdebug
+        command: sudo rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+    - restore_cache:
+        keys:
+        - vendors-{{ checksum "composer.lock" }}
+    - restore_cache:
+        keys:
+        - node_modules-{{ checksum "package-lock.json" }}
+    - run: sudo docker-php-ext-install bcmath && sudo docker-php-ext-enable bcmath
+    - run: composer dump
+    - run:
+        name: Wait for DB
+        command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+    - run: php artisan key:generate && php artisan optimize
+    - run:
+        name: Run Laravel Server
+        command: php artisan serve
+        background: true
+    - run:
+        name: Running Functional Tests
+        command: ./vendor/bin/phpunit -d memory_limit=1024M tests
+  quality_check:
+    <<: *defaults
+    steps:
+    - attach_workspace:
+        at: ~/laravel
+    - run: sudo docker-php-ext-install sockets
+    - run:
+        name: Disable Xdebug
+        command: sudo rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+    - restore_cache:
+        keys:
+        - vendors-{{ checksum "composer.lock" }}
+    - run:
+        name: Run PHP CS Fixer
+        command: vendor/bin/php-cs-fixer fix -vv --dry-run --diff --using-cache=no
+    - run:
+        name: Run Code Analize
+        command: php artisan code:analyse --level=1
+  e2e:
+    <<: *defaults
+    parallelism: 3
+    steps:
+    - attach_workspace:
+        at: ~/laravel
+    - run:
+        name: Update host file
+        command: |
+          echo 127.0.0.1 taller.test | sudo tee -a /etc/hosts
+          cat /etc/hosts
+    - restore_cache:
+        keys:
+        - vendors-{{ checksum "composer.lock" }}
+    - restore_cache:
+        keys:
+        - node_modules-{{ checksum "package-lock.json" }}
+    - run: sudo docker-php-ext-install sockets
+    - run: sudo docker-php-ext-install bcmath && sudo docker-php-ext-enable bcmath
+    - run: composer dump-autoload
+    - run:
+        name: Wait for DB
+        command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+    - run: composer dump
+    - run: php artisan key:generate && php artisan optimize
+    - run:
+        name: Run Laravel Server
+        command: php artisan serve
+        background: true
+    - run:
+        name: Install cypress
+        command: node_modules/cypress/bin/cypress install
+    - run:
+        name: Running E2E Tests
+        command: |
+          SPLIT_FILES=$(circleci tests glob cypress/integration/**/*.spec.js | circleci tests split --split-by=filesize)
+          JOINED_FILES=$(echo $SPLIT_FILES | sed 's/ /,/g')
+          ./node_modules/.bin/cypress run --spec "$JOINED_FILES"
+    - store_artifacts:
+        path: cypress/videos
+    - store_artifacts:
+        path: cypress/screenshots
+
+workflows:
+  version: 2
+  development:
+    jobs:
+    - build
+    - test:
+        requires:
+        - build
+    - quality_check:
+        requires:
+        - build
