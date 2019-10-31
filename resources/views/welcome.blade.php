@@ -94,7 +94,7 @@
             <a style="font-family: 'Arial Rounded MT Bold'"
                href="https://laravel.com/docs">Docs Master Title
             </a>
-            <a href="https://laracasts.com">Laracasts</a>
+            <a href="https://laracasts.com">Laracasts Master TITLE</a>
             <a href="https://laravel-news.com">News</a>
             <a href="https://blog.laravel.com">Blog</a>
             <a href="https://nova.laravel.com">Nova</a>
