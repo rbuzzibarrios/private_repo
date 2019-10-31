@@ -10,7 +10,6 @@
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,600" rel="stylesheet">
-
     <!-- Styles -->
     <style>
         html, body {
@@ -86,15 +85,13 @@
             Laravel RBB
         </div>
 
-        <div>
-            hello
-        </div>
-
         <div class="links">
             <a style="font-family: 'Arial Rounded MT Bold'"
                href="https://laravel.com/docs">Docs Master Title
             </a>
-            <a href="https://laracasts.com">Laracasts Master TITLE</a>
+            <a href="https://laracasts.com" style="color: darkred;font-family: 'Agency FB'">
+                Laracasts RBB Title
+            </a>
             <a href="https://laravel-news.com">News</a>
             <a href="https://blog.laravel.com">Blog</a>
             <a href="https://nova.laravel.com">Nova</a>
