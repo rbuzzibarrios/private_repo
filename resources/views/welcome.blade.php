@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>
-            Laravel RBB-HELLO_TITLE
+            Laravel RBB_MY_TITLE
         </title>
 
         <!-- Fonts -->
