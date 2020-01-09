@@ -92,7 +92,7 @@
             <a href="https://laracasts.com" style="color: darkred;font-family: 'Agency FB'">
                 Laracasts RBB Title
             </a>
-            <a href="https://laravel-news.com">News</a>
+            <a href="https://laravel-news.com">News RBB</a>
             <a href="https://blog.laravel.com">Blog RBB</a>
             <a href="https://nova.laravel.com">Nova</a>
             <a href="https://forge.laravel.com">Forge</a>
