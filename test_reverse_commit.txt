@@ -1,4 +1,2 @@
 test1
 test para oscar
-test para oscar revert 1
-test para oscar revert 2
